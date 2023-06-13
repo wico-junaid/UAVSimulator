@@ -23,13 +23,9 @@ public class GNSSDataProducerService {
     private final int systemId = 255;
     private final int componentId = 0;
 
-    private DatagramSocket socket;
-
     public GNSSDataProducerService(GnssData gnssData) {
         try {
             this.gnssData = gnssData;
-            this.socket = new DatagramSocket();
-
         } catch (Exception e) {
             log.error("Exception: " + e);
             //e.printStackTrace();
