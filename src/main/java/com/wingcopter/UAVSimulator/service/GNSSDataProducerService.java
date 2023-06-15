@@ -4,36 +4,43 @@ import com.wingcopter.UAVSimulator.config.PropertyConfiguration;
 import com.wingcopter.UAVSimulator.model.GnssData;
 import com.wingcopter.UAVSimulator.udp.UDPController;
 import io.dronefleet.mavlink.MavlinkConnection;
-import io.dronefleet.mavlink.common.GlobalPositionInt;
+import io.dronefleet.mavlink.common.GpsRawInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
-import java.net.DatagramSocket;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.Random;
 
+/**
+ * UAV simulated GNSS/GPS data producer service
+ */
+@Service
 public class GNSSDataProducerService {
 
     private static final Logger log = LoggerFactory.getLogger(GNSSDataProducerService.class);
 
-    private GnssData gnssData;
-    private final int systemId = 255;
-    private final int componentId = 0;
+    private static GnssData gnssData;
+    private static final int systemId = 255;
+    private static final int componentId = 0;
 
     public GNSSDataProducerService(GnssData gnssData) {
         try {
             this.gnssData = gnssData;
         } catch (Exception e) {
             log.error("Exception: " + e);
-            //e.printStackTrace();
         }
 
     }
 
-    public void sendGNSSData() {
+    /**
+     * sending the simulated GNSS/GPS data based on mavlink and UDP
+     */
+    public static void sendGNSSData() {
         try {
             Properties properties = PropertyConfiguration.loadProperties();
             UDPController udpController = new UDPController(properties);
@@ -41,79 +48,78 @@ public class GNSSDataProducerService {
             log.debug("Starting the simulation..");
             MavlinkConnection connection = MavlinkConnection.create(udpController.getPipedInputStream(), udpController.getPipedOutputStream());
 
-//            if (gnssData.getHeartbeat() == 0){
-//                log.debug("Heartbeat message..");
-//                Heartbeat heartbeat = Heartbeat.builder()
-//                        .type(MavType.MAV_TYPE_GCS)
-//                        .autopilot(MavAutopilot.MAV_AUTOPILOT_INVALID)
-//                        .systemStatus(MavState.MAV_STATE_UNINIT)
-//                        .mavlinkVersion(3)
-//                        .build();
-//
-//                System.out.println(heartbeat);
-//                connection.send2(systemId,componentId,heartbeat);
-//            } else {
-                //log.debug("Performing the simulation..");
-                // Calculate the distance between start and end points
-                double distance = calculateDistance(gnssData.getStartLatitude(), gnssData.getStartLongitude(), gnssData.getEndLatitude(), gnssData.getEndLongitude());
+            if (gnssData.isEmpty()){
+                throw new IllegalArgumentException("Argument are null");
+            }
+            // Calculate the distance between start and end points
+            double distance = calculateDistance(gnssData.getStartLatitude(), gnssData.getStartLongitude(), gnssData.getEndLatitude(), gnssData.getEndLongitude());
 
-                // Calculate the number of steps based on the desired time interval (e.g., 1 second)
-                double timeInterval = 1.0; // Time interval in seconds
-                int numSteps = (int) Math.ceil(distance / (gnssData.getSpeed() * timeInterval));
+            // Calculate the number of steps based on the desired time interval (e.g., 1 second)
+            double timeInterval = 1.0; // Time interval in seconds
+            int numSteps = (int) Math.ceil(distance / (gnssData.getSpeed() * timeInterval));
 
-                // Calculate the latitude and longitude increment per step
-                double latIncrement = (gnssData.getEndLatitude() - gnssData.getStartLatitude()) / numSteps;
-                double lonIncrement = (gnssData.getEndLongitude()- gnssData.getStartLongitude()) / numSteps;
+            // Calculate the latitude and longitude increment per step
+            double latIncrement = (gnssData.getEndLatitude() - gnssData.getStartLatitude()) / numSteps;
+            double lonIncrement = (gnssData.getEndLongitude()- gnssData.getStartLongitude()) / numSteps;
 
-                // Initialize the current coordinates to the start point
-                double currentLatitude = gnssData.getStartLatitude();
-                double currentLongitude = gnssData.getStartLongitude();
+            // Initialize the current coordinates to the start point
+            double currentLatitude = gnssData.getStartLatitude();
+            double currentLongitude = gnssData.getStartLongitude();
 
-                // Perform the flight simulation
-                for (int i = 0; i < numSteps; i++) {
+            log.debug("Simulation in progress..");
+            // Perform the flight simulation
+            for (int i = 0; i < numSteps; i++) {
+                // Calculate the current altitude based on the time elapsed
+                double elapsedTime = (i + 1) * timeInterval;
 
-                    // Calculate the current altitude based on the time elapsed
-                    double elapsedTime = (i + 1) * timeInterval;
-                    double currentAltitude = gnssData.getAltitude() + (elapsedTime * gnssData.getChangeAltMeterPerSecond());
+                // update the altitude based on changing altitude meter per second
+                double currentAltitude = gnssData.getAltitude() + (elapsedTime * gnssData.getChangeAltMeterPerSecond());
 
-                    // Update the current coordinates based on the increments
-                    currentLatitude += latIncrement;
-                    currentLongitude += lonIncrement;
+                // Update the current coordinates based on the increments
+                currentLatitude += latIncrement;
+                currentLongitude += lonIncrement;
 
-                    // calculate the current timestamp
-                    long currentTimeMillis = System.currentTimeMillis();
-                    Instant currentInstant = Instant.ofEpochMilli(currentTimeMillis);
+                // calculate the current timestamp
+                long currentTimeMillis = System.currentTimeMillis();
+                Instant currentInstant = Instant.ofEpochMilli(currentTimeMillis);
 
-                    // Create a GlobalPositionInt message
-                    GlobalPositionInt globalPositionInt = GlobalPositionInt.builder()
-                            .timeBootMs(currentInstant.getEpochSecond())
-                            .lat((int) (gnssData.getStartLatitude() * 1E7)) // Convert latitude to degrees * 1E7
-                            .lon((int) (gnssData.getStartLongitude() * 1E7)) // Convert longitude to degrees * 1E7
-                            .alt((int) (gnssData.getAltitude() * 1E3)) // Convert altitude to meters
-                            .build();
+                // Create a gpsRawInt message
+                BigInteger timeInt = BigInteger.valueOf(currentInstant.getEpochSecond());
+                GpsRawInt gpsRawInt = GpsRawInt.builder()
+                        .timeUsec(timeInt)
+                        .lat((int) (gnssData.getStartLatitude() * 1E7)) // Convert latitude to degrees * 1E7
+                        .lon((int) (gnssData.getStartLongitude() * 1E7)) // Convert longitude to degrees * 1E7
+                        .alt((int) (gnssData.getAltitude() * 1E3)) // Convert altitude to meters
+                        .build();
 
-                    byte[] secretKey = MessageDigest.getInstance("SHA-256")
-                            .digest(globalPositionInt.toString().getBytes(StandardCharsets.UTF_8));
+                // secret key based on payload
+                byte[] secretKey = MessageDigest.getInstance("SHA-256")
+                        .digest(gpsRawInt.toString().getBytes(StandardCharsets.UTF_8));
 
-                    System.out.println("Mavlink Packet: " + systemId + ", " + componentId + ", " + globalPositionInt);
+                // printing the messages
+                System.out.println("Mavlink Packet: " + systemId + ", " + componentId + ", " + gpsRawInt);
 
-                    connection.send2(systemId, componentId, globalPositionInt, 0, currentInstant.getEpochSecond(), secretKey);
+                // prepare and sending the mavlink2 messages
+                connection.send2(systemId, componentId, gpsRawInt, 0, currentInstant.getEpochSecond(), secretKey);
 
-                    // update the start coordinates
-                    gnssData.setAltitude(currentAltitude);
-                    gnssData.setStartLatitude(currentLatitude);
-                    gnssData.setStartLongitude(currentLongitude);
+                // update the start coordinates
+                gnssData.setAltitude(currentAltitude);
+                gnssData.setStartLatitude(currentLatitude);
+                gnssData.setStartLongitude(currentLongitude);
 
-                    // Wait for the specified time interval before the next position update
-                    Thread.sleep((long) (timeInterval * 1000));
-                }
-            //}
+                // Wait for the specified time interval before the next position update
+                Thread.sleep((long) (timeInterval * 1000));
+            }
         } catch (Exception ex) {
             log.error("Exception :" + ex);
         }
     }
 
-
+    /**
+     *
+     * @param input payload data of mavlink message
+     * @return updated latitude and longitude string
+     */
     public static String modifyMessage(String input) {
         // Parse the latitude and longitude from the input string
         int latStartIndex = input.indexOf("lat=") + 4;
@@ -138,7 +144,14 @@ public class GNSSDataProducerService {
         return modified;
     }
 
-    // Calculate the distance between two points using the Haversine formula
+    /**
+     * Calculate the distance between two points using the Haversine formula
+     * @param lat1 latitude 1 of initial coordinates
+     * @param lon1 longitude 1 of initial coordinates
+     * @param lat2 latitude 2 of destination coordinates
+     * @param lon2 longitude  2 of destination coordinates
+     * @return calculated distance
+     */
     private static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
 
         //log.debug("Calculating distance between two coordinates.");

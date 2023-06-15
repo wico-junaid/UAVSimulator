@@ -64,4 +64,11 @@ public class GnssData {
     public void setChangeAltMeterPerSecond(double changeAltMeterPerSecond) {
         this.changeAltMeterPerSecond = changeAltMeterPerSecond;
     }
+
+    public boolean isEmpty(){
+        if (startLatitude == 0 &  startLongitude == 0 & endLatitude == 0 & endLongitude == 0){
+            return true;
+        }
+        return false;
+    }
 }
