@@ -66,7 +66,7 @@ public class GnssData {
     }
 
     public boolean isEmpty(){
-        if (startLatitude == 0 &  startLongitude == 0 & endLatitude == 0 & endLongitude == 0){
+        if (startLatitude == 0 ||  startLongitude == 0 || endLatitude == 0 || endLongitude == 0){
             return true;
         }
         return false;

@@ -26,4 +26,18 @@ class GNSSDataProducerServiceTest {
         assertThrows(IllegalArgumentException.class,
                 gnssDataProducerService::sendGNSSData);
     }
+
+    @Test
+    void sendGNSSDataWithArgumentsTest() {
+        gnssData.setStartLatitude(0.00001);
+        gnssData.setStartLongitude(0.00001);
+        gnssData.setEndLatitude(0.00002);
+        gnssData.setEndLongitude(0.00002);
+        gnssData.setAltitude(0);
+        gnssData.setSpeed(1);
+        gnssData.setChangeAltMeterPerSecond(0);
+        GNSSDataProducerService gnssDataProducerService = new GNSSDataProducerService(gnssData);
+        gnssDataProducerService.sendGNSSData();
+        assertNotNull(gnssDataProducerService);
+    }
 }
