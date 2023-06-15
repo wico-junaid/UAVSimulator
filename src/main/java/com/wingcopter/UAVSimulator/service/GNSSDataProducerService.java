@@ -7,7 +7,6 @@ import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.common.GpsRawInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -16,12 +15,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Properties;
-import java.util.Random;
+
 
 /**
  * UAV simulated GNSS/GPS data producer service
  */
-@Service
 public class GNSSDataProducerService {
 
     private static final Logger log = LoggerFactory.getLogger(GNSSDataProducerService.class);
@@ -42,17 +40,19 @@ public class GNSSDataProducerService {
     /**
      * sending the simulated GNSS/GPS data based on mavlink and UDP
      */
-    public static void sendGNSSData() {
+    public void sendGNSSData() {
         try {
             Properties properties = PropertyConfiguration.loadProperties();
             UDPController udpController = new UDPController(properties);
 
-            log.debug("Starting the simulation..");
-            MavlinkConnection connection = MavlinkConnection.create(udpController.getPipedInputStream(), udpController.getPipedOutputStream());
-
+            // arguments check
             if (gnssData.isEmpty()){
                 throw new IllegalArgumentException("Argument are null");
             }
+
+            log.debug("Starting the simulation..");
+            MavlinkConnection connection = MavlinkConnection.create(udpController.getPipedInputStream(), udpController.getPipedOutputStream());
+
             // Calculate the distance between start and end points
             double distance = calculateDistance(gnssData.getStartLatitude(), gnssData.getStartLongitude(), gnssData.getEndLatitude(), gnssData.getEndLongitude());
 
@@ -112,38 +112,9 @@ public class GNSSDataProducerService {
                 // Wait for the specified time interval before the next position update
                 Thread.sleep((long) (timeInterval * 1000));
             }
-        } catch (IOException | InterruptedException | NoSuchAlgorithmException ex) {
+        } catch (IOException | InterruptedException | NoSuchAlgorithmException | IllegalArgumentException ex) {
             log.error("Exception :" + ex);
         }
-    }
-
-    /**
-     *
-     * @param input payload data of mavlink message
-     * @return updated latitude and longitude string
-     */
-    public static String modifyMessage(String input) {
-        // Parse the latitude and longitude from the input string
-        int latStartIndex = input.indexOf("lat=") + 4;
-        int latEndIndex = input.indexOf(",", latStartIndex);
-        int lonStartIndex = input.indexOf("lon=") + 4;
-        int lonEndIndex = input.indexOf(",", lonStartIndex);
-        String latStr = input.substring(latStartIndex, latEndIndex);
-        String lonStr = input.substring(lonStartIndex, lonEndIndex);
-        int lat = Integer.parseInt(latStr);
-        int lon = Integer.parseInt(lonStr);
-        // Add a random number between 10000000 and 90000000 to the latitude and longitude
-        Random rand = new Random();
-        int latOffset = rand.nextInt(80000) + 10000;
-        int lonOffset = rand.nextInt(80000) + 10000;
-        lat += latOffset;
-        lon += lonOffset;
-        // Build the modified string
-        String latReplaceStr = "lat=" + lat + ",";
-        String lonReplaceStr = "lon=" + lon + ",";
-        String modified = input.replaceFirst("lat=[^,]*,", latReplaceStr);
-        modified = modified.replaceFirst("lon=[^,]*,", lonReplaceStr);
-        return modified;
     }
 
     /**

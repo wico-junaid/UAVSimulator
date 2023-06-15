@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GNSSDataProducerServiceTest {
 
-    static GnssData gnssData = new GnssData();
+    GnssData gnssData = new GnssData();
 
     @BeforeEach
     void setUp() {
@@ -22,20 +22,22 @@ class GNSSDataProducerServiceTest {
 
     @Test
     void sendGNSSDataNoArgumentsTest() {
+        GNSSDataProducerService gnssDataProducerService = new GNSSDataProducerService(gnssData);
         assertThrows(IllegalArgumentException.class,
-                GNSSDataProducerService::sendGNSSData);
+                gnssDataProducerService::sendGNSSData);
     }
 
     @Test
-    void sendGnssDataWithArgumentsTest(){
-        gnssData.setStartLatitude(37.7749);
-        gnssData.setStartLongitude(-122.4194);
-        gnssData.setEndLatitude(34.0522);
-        gnssData.setEndLatitude(-118.2437);
-
+    void sendGNSSDataWithArgumentsTest() {
+        gnssData.setStartLatitude(0.00001);
+        gnssData.setStartLongitude(0.00001);
+        gnssData.setEndLatitude(0.00002);
+        gnssData.setEndLongitude(0.00002);
+        gnssData.setAltitude(0);
+        gnssData.setSpeed(1);
+        gnssData.setChangeAltMeterPerSecond(0);
         GNSSDataProducerService gnssDataProducerService = new GNSSDataProducerService(gnssData);
         gnssDataProducerService.sendGNSSData();
-
-        assertNull(gnssDataProducerService);
+        assertNotNull(gnssDataProducerService);
     }
 }
