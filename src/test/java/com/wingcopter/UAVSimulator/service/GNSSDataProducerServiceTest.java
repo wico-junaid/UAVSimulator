@@ -22,7 +22,6 @@ class GNSSDataProducerServiceTest {
 
     @Test
     void sendGNSSDataNoArgumentsTest() {
-        GNSSDataProducerService gnssDataProducerService = new GNSSDataProducerService(gnssData);
         assertThrows(IllegalArgumentException.class,
                 GNSSDataProducerService::sendGNSSData);
     }
