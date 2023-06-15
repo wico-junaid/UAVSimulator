@@ -4,7 +4,6 @@ import com.wingcopter.UAVSimulator.model.GnssData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,10 +23,8 @@ class GNSSDataProducerServiceTest {
     @Test
     void sendGNSSDataNoArgumentsTest() {
         GNSSDataProducerService gnssDataProducerService = new GNSSDataProducerService(gnssData);
-        gnssDataProducerService.sendGNSSData();
-
         assertThrows(IllegalArgumentException.class,
-                () -> gnssDataProducerService.sendGNSSData());
+                GNSSDataProducerService::sendGNSSData);
     }
 
     @Test

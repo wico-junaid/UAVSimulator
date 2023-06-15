@@ -9,9 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.Random;
@@ -110,7 +112,7 @@ public class GNSSDataProducerService {
                 // Wait for the specified time interval before the next position update
                 Thread.sleep((long) (timeInterval * 1000));
             }
-        } catch (Exception ex) {
+        } catch (IOException | InterruptedException | NoSuchAlgorithmException ex) {
             log.error("Exception :" + ex);
         }
     }
