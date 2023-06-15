@@ -45,12 +45,14 @@ public class GNSSDataProducerService {
             Properties properties = PropertyConfiguration.loadProperties();
             UDPController udpController = new UDPController(properties);
 
-            log.debug("Starting the simulation..");
-            MavlinkConnection connection = MavlinkConnection.create(udpController.getPipedInputStream(), udpController.getPipedOutputStream());
-
+            // arguments check
             if (gnssData.isEmpty()){
                 throw new IllegalArgumentException("Argument are null");
             }
+
+            log.debug("Starting the simulation..");
+            MavlinkConnection connection = MavlinkConnection.create(udpController.getPipedInputStream(), udpController.getPipedOutputStream());
+
             // Calculate the distance between start and end points
             double distance = calculateDistance(gnssData.getStartLatitude(), gnssData.getStartLongitude(), gnssData.getEndLatitude(), gnssData.getEndLongitude());
 
@@ -110,7 +112,7 @@ public class GNSSDataProducerService {
                 // Wait for the specified time interval before the next position update
                 Thread.sleep((long) (timeInterval * 1000));
             }
-        } catch (IOException | InterruptedException | NoSuchAlgorithmException ex) {
+        } catch (IOException | InterruptedException | NoSuchAlgorithmException | IllegalArgumentException ex) {
             log.error("Exception :" + ex);
         }
     }
